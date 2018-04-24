@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>index</title>
+	<script src="jquery-1.10.2.js"></script>
+	<link rel="stylesheet" type="text/css" href="reset.css">
+	<style type="text/css">
+		.header{width: 100%;height: 58px;line-height: 58px;background: #f9f9f9;position:relative;z-index:5;top:0;}
+		.header-content{width: 1200px;margin:0 auto;}
+		.header-content img{vertical-align: middle;}
+		.content{background: #fff;width:1200px;height:800px;margin:0 auto;overflow:auto;top:4rem;position:relative;z-index:10;}
+		.footer{height: 90px;line-height:90px;background: #ddd;width: 100%;text-align: center;position:relative;z-index:200;bottom:0;}
+		.cl {clear: both !important;}
+		.menu{border:1px solid #e1e1e1;padding: 30px;}
+		.moving-ball{border:1px solid #e1e1e1;height: 300px;width: 300px;text-align: center;margin: 10px;position: relative;}
+		.moving-ball .ball{position: absolute;}
+		.detail-content{width: 800px;height: 300px;border: 1px solid #e1e1e1;margin: 20px 0px;}
+	</style>
+</head>
+<body>
+	<div class="header">
+		<div class="header-content">
+			<img src="http://static.danlu.com/mall/optimization/resources/image/serchlogo.jpg">
+		</div>
+	</div>
+	<div class="content">
+		<div class="side-bar">
+			<div class="menu">
+				<button id="btn1">刷新</button>
+				<button id="btn2">新增</button>
+				<button id="btn3">删除</button>
+			</div>
+			<div class="moving-ball">
+				<div id="ball" style='width:8px;height:8px;background:#f92659;position:absolute;'></div>
+			</div>
+			<span>输入小球移动后的位置<input id="pos" /></span>
+			<button id="moveBtn">开始移动</button>
+			<button id="cancelBtn">取消移动</button>
+			<button id="backBtn">回退移动</button>
+		</div>
+		<div class="detail-content">
+			<span>职责链模式</span>
+			<div class="order-show">
+
+			</div>
+		</div>
+		<div class="decorator">
+			<span>AOP装饰函数</span>
+			<button id="button">AOP装饰函数点击</button>
+		</div>
+	  <span>统计点击次数</span>
+		<button id="count" tag="3">统计点击次数</button>
+		<div class='login'>
+			<button id="loginBtn">打开登录浮窗</button>
+			<button id="loginBtn1">职责分离登录浮窗按钮</button>
+			<div id="iframeSingle">iframe加载</div>
+		</div>
+	</div>
+
+	<!-- <div class="footer">
+		<nav>
+      <p>
+				<a href="/description.htm" target="_blank">丹露网</a>&nbsp; 2014 danlu.com All Rights Reserved&nbsp; &nbsp;&nbsp;<a href="javascript:void(0);" vb-event="click=window.open('http://sccainfo.miitbeian.gov.cn/state/outPortal/loginPortal.action');">蜀ICP备16000363号</a>| <a href="http://asset.danlu.com/upload/img/zzywxkz.jpg" target="_blank">增值电信业务经营许可证：川B2-20160102</a>
+			</p>
+	  </nav>
+	</div> -->
+
+	<script type="text/javascript">
+	//-----------------------------------命令模式--------------------------------
+	$(function(){
+		//对应绑定指令	
+		var setCommand = function(button,func){
+			$(button).click(function(){
+				func();
+			})
+		};
+		//订单操作
+		var MenuBar = {
+			refresh:function(){
+				console.log("刷新页面！");
+			},
+			add:function(){
+				console.log("新增菜单");
+			},
+			delete:function(){
+				console.log("删除命令");
+			}
+		};
+		//具体业务操作
+		var RefreshMenuBarCommand = function(receiver){
+			return function(){
+				receiver.refresh();
+			}
+		};
+		var AddMenuBarCommand = function(receiver){
+			return function(){
+				receiver.add();
+			}
+		}
+		var DeleteBarCommand = function(receiver){
+			return function(){
+				receiver.delete();
+			}
+		}
+		var refreshMenuBarCommand = RefreshMenuBarCommand(MenuBar);
+		var addMenuBarCommand = AddMenuBarCommand(MenuBar);
+		var deleteBarCommand = DeleteBarCommand(MenuBar);
+		// 调用命令
+		setCommand("#btn1",refreshMenuBarCommand);
+		setCommand("#btn2",addMenuBarCommand);
+		setCommand("#btn3",deleteBarCommand);
+
+//------------------------------------小球步骤记录及回退------------------------------------//
+
+		// 移动小球并存储每次的位置，可撤销或重置
+		var ball = document.getElementById('ball');
+		var pos = document.getElementById('pos');
+		var moveBtn = document.getElementById('moveBtn');
+		var cancelBtn = document.getElementById('cancelBtn');
+		var backBtn = document.getElementById('backBtn');
+		// var pos = $("#pos");
+		// var moveBtn = $("#moveBtn");
+
+		var commandStack = [];
+		var MoveCommand = function(receiver,pos){
+			this.receiver = receiver;
+			this.pos = pos;
+			this.iniPos = commandStack.length>0?commandStack[0]:0;
+		};
+		MoveCommand.prototype.execute = function() {
+			this.receiver.dom.style['left'] = this.pos+'px';
+			commandStack.push(this.pos);
+		};
+		MoveCommand.prototype.undo = function(){
+			this.receiver.dom.style['left'] = this.iniPos+'px';
+		}
+		MoveCommand.prototype.backdo = function(){
+			this.receiver.dom.style['left'] = commandStack[commandStack.length>1?commandStack.length-2:0]+'px';
+			commandStack.shift();
+		}
+
+		var moveCommand;
+		var Animate = function(dom){
+			this.dom = dom;
+		}
+		moveBtn.onclick =function(){
+			var animate = new Animate(ball);
+			moveCommand = new MoveCommand(animate,pos.value);
+			moveCommand.execute();
+		}
+		cancelBtn.onclick = function(){
+			var animate = new Animate(ball);
+			moveCommand = new MoveCommand(animate,pos.value);
+			moveCommand.undo();
+		}
+		backBtn.onclick = function(){
+			var animate = new Animate(ball);
+			moveCommand = new MoveCommand(animate,pos.value);
+			moveCommand.backdo();
+		}
+
+		//ajax请求
+		$.ajax({
+			url: 'http://localhost:3000/orderline/index',
+			type: 'GET',
+			dataType: 'JSON',
+			data: ''
+		})
+		.done(function() {
+			console.log("success");
+		})
+		.fail(function() {
+			console.log("error");
+		})
+		.always(function() {
+			console.log("complete");
+		});
+		
+	});
+
+
+/*-------------------------职责链模式--------计算优惠金额----------------------------*/
+//一般常规写法
+/***********************************************************************************
+【例子】假设我们负责一个售卖手机的电商网站，经过分别交纳500元和200元定金的两轮预定后（订单已在此时生成）现阶段已到了正式购买阶段。公司针对这部分支付过定金的用户有一定优惠政策：正式购买后，已经支付过500元定金的用户会受到100元的商城优惠券，200元定金的用户可以受到50元的优惠券，而之前没有支付定金的用户只能进入普通购买模式，即没有优惠券，且在库存有限的情况下不一定保证买到。
+【分析】后端返回的数据字段有：
+ orderType:表示订单类型（定金用户或者普通购买用户）code值为1时，为500元定金用户；为2时是200元定金用户；为3时是普通购买用户；
+ pay：表示是否已经支付定金，值为true或false，虽然用户已经下过500元定金用户，但是并没有支付，先只能降级进入普通购买模式；
+ stock:表示当前用于普通购买的手机库存数量，已经支付过500元或200元定金用户不受此限制。
+ **********************************************************************************/
+
+var normalOrder = function(orderType,pay,stock){
+	//500元定金购买模式
+	if(orderType == 1){ 
+		if(pay === true){
+			console.log('500元定金预购，得到100元优惠券');
+		}else{//未支付定金，降级到普通购买模式
+			if(stock >0){//用于普通购买模式的手机是否还有库存
+				console.log('普通购买，无法获取优惠券')
+			}else{
+				console.log('库存不足');
+			}
+		}
+	}
+	//200元定金购买模式
+	else if(orderType == 2){
+		if(pay === true){
+			console.log('200元定金预购，得到50元优惠券');
+		}else{//未支付定金，降级到普通购买模式
+			if(stock >0){//用于普通购买模式的手机是否还有库存
+				console.log('普通购买，无法获取优惠券');
+			}else{
+				console.log('库存不足');
+			}
+		}
+	}
+	//普通购买模式
+	else if(orderType == 3){
+		if(stock >0){
+			console.log('普通购买，无法获取优惠券');
+		}else{
+			console.log('库存不足');
+		}
+	}
+}
+//-----------------------------职责链重构代码1------------------------------
+//500元定金订单
+var order500 = function(orderType,pay,stock){
+	if(orderType === 1 && pay === true){
+		console.log('支付500元定金，得到100元优惠券');
+	}else{
+		order200(orderType,pay,stock);//将请求传递给200元定金订单
+	}
+}
+//200元定金订单
+var order200 = function(orderType,pay,stock){
+	if(orderType === 2 && pay === true){
+		console.log('支付200元定金，得到50元优惠券');
+	}else{
+		order0(orderType,pay,stock);
+	}
+}
+// 普通购买模式
+var order0 = function(orderType,pay,stock){		
+	if(stock >0){
+		console.log('普通购买，无法获取优惠券');
+	}else{
+		console.log('库存不足');
+	}
+}
+$(function(){
+	normalOrder(1,false,7);
+	order500(1,false,7);
+});
+//-----------------------------职责链重构代码1分析--------------------------
+/******************************************************
+*此次重构将大的逻辑拆分成3个小函数
+*但是缺点也很明显：请求在链条传递中顺序十分僵硬，
+*传递请求的代码被耦合在业务代码函数中
+*******************************************************/
+//-----------------------------职责链重构代码2------------------------------
+/*************************************************
+*目的：更灵活的职责链，让链中的各个节点可以灵活拆分
+*约定当某个节点不能处理请求，则返回一个特定字符串‘nextSuccessor’
+*来表示该请求需要继续向后传递
+**************************************************/
+
+var order_500 = function(orderType,pay,stock){
+	if(orderType ===1 && pay ===true){
+		console.log('500元定金预购，得到100元优惠券');
+	}else{
+		return 'nextSuccessor'; //可以不知道下一个节点，只是发出请求
+	}
+};
+var order_200 = function(orderType,pay,stock){
+	if(orderType ===2 && pay === true){
+		console.log('200元定金预购，得到50元优惠券');
+	}else{
+		return 'nextSuccessor';
+	}
+}
+var order_0 = function(orderType,pay,stock){
+	if (stock>0) {
+		console.log('普通购买，无法获取优惠券');
+	}else{
+		console.log('手机库存不足');
+	}
+}
+
+//Chain.prototype.setNextSuccessor 指定在链中的下一个节点
+//Chain.prototype.passRequest 传递请求给某个节点
+var Chain = function(fn){
+	this.fn = fn;
+	this.successor = null;
+}
+Chain.prototype.setNextSuccessor = function(successor){
+	return this.successor = successor;
+}
+Chain.prototype.passRequest = function(){
+	var ret = this.fn.apply(this,arguments);
+	if(ret == 'nextSuccessor'){
+		return this.successor && this.successor.passRequest.apply(this.successor,arguments);
+	}
+	return ret;
+}
+var chainOrder500 = new Chain(order_500);
+var chainOrder200 = new Chain(order_200);
+var chainOrderNormal = new Chain(order_0);
+//然后再指定节点在职责链中的顺序
+chainOrder500.setNextSuccessor(chainOrder200);
+chainOrder200.setNextSuccessor(chainOrderNormal);
+
+//然后调用操作函数
+console.log("********************dddd1***********************");
+chainOrder500.passRequest(1,true,500);
+console.log("********************dddd2***********************");
+//【注】这里同理可以处理异步请求，形成一个异步ajax队列库，控制什么时候将指令移交给下一个节点
+
+/*-----------------------中介者模式-----泡泡堂游戏模拟-----------------------*/
+/*****************************************************************************
+*例子介绍：两队游戏，两个玩家对打，
+*当现实中由两队，每队友3个成员，情况就变得复杂，当其中一个队全输了后，则需要另一队就赢了
+*
+*****************/
+	function Player(name){
+		this.name = name;
+		this.enemy = null;
+	}
+	Player.prototype.win = function(){
+		console.log(this.name +'---won');
+	}
+	Player.prototype.lose = function(){
+		console.log(this.name + '---lost');
+	}
+	Player.prototype.die = function(){
+		this.lose();
+		this.enemy.win();
+	}
+
+	//创建两个玩家
+	var player1 = new Player('Peter');
+	var player2 = new Player('Daniel');
+
+	//将彼此设置为敌人
+	player1.enemy = player2;
+	player2.enemy = player1;
+
+	//让玩家1挂掉
+	setTimeout(function(){
+		player1.die();
+	},5000);
+
+	/***-----------------------------装饰者模式---------------------------***/
+  var plane={
+  	fire:function(){
+  		console.log('发射普通子弹！');
+  	}
+  }
+  var missleDecorator = function(){
+  	console.log('发射导弹！');
+  }
+  var atomDecorator = function(){
+  	console.log('发射原子弹！')
+  }
+  //注：当定义顺序发生改变时，会使得数据的执行顺序不同
+  var fire1 = plane.fire;
+  plane.fire = function(){
+  	fire1();
+  	missleDecorator();
+  }
+  var fire2 = plane.fire;
+  plane.fire = function(){
+  	fire2();
+  	atomDecorator();
+  }
+  plane.fire();
+
+  /****----------------apply----------------****/
+  function add(a,b){alert(a+b);}  
+	function sub(a,b){alert(a-b);}  
+	// add.call(sub,3,1);   
+	// add.apply()
+	//AOP装饰函数
+	Function.prototype.before = function(beforefn){
+		var _self = this;
+		return function(){
+			beforefn.apply(this,arguments);
+			return _self.apply(this,arguments);
+		}
+	};
+	document.getElementById = document.getElementById.before(function(){
+		// console.log("插入-");
+	});
+
+	var button = document.getElementById('button');
+	// console.log(button);
+	//入参方式,在某个功能前添加新的逻辑功能，不动其他逻辑代码
+	var before = function(fn,beforefn){
+		return function(){
+			beforefn.apply(this,arguments);
+			return fn.apply(this,arguments);
+		}
+	};
+	var a = before(
+		function(){console.log('old--hello--22');},
+		function(){console.log('new--hello--233');}
+		);
+	console.log(a);
+	a();
+
+	var after = function(fn,afterfn){
+		return function(){
+			fn.apply(this,arguments);
+			return afterfn.apply(this,arguments);
+		}
+	}
+
+	Function.prototype.after = function(afterfn){
+		var _self = this;
+		return function(){
+			var ret = _self.apply(this,arguments);
+			afterfn.apply(this,arguments);
+			return ret;
+		}
+	}
+	//统计操作次数
+	var showLogin = function(){
+		console.log('打开登录浮层！');
+		// log(this.getAttribute('tag'));
+	}
+	var log = function(){
+		console.log('上报标签为：'+ this.getAttribute('tag'));
+	}
+	// var t = after(showLogin(),log())
+	showLogin = showLogin.after(log)
+	// document.getElementById('count').onclick = t();
+	document.getElementById('count').onclick = showLogin;
+
+	var func = function(param){
+		console.log("param");
+	}
+	func = func.before(function(){
+		// param.b='b';
+	});
+	func({a:"a"});
+
+	/*************************状态模式**************************/
+
+	var Light = function(){
+		this.offLightState = new OffLightState(this);
+		this.weakLightState  = new WeakLightState(this);
+		this.strongLigthState = new StrongLightState(this);
+		this.superStrongLightState = new SuperStrongLightState(this);
+		this.button = null;
+	}
+
+	Light.prototype.setState = function(newState){
+		this.curState = newState;
+	}
+
+	//【注】这里所有的编写一个父类状态对象,其对象方法必须被重写，否则报异常
+	var State = function(){};
+	State.prototype.buttonWasPressed = function(){
+		throw new Error("父类的buttonWasPressed方法必须被重写");
+	}
+	//关灯状态
+	var OffLightState = function(light){
+		this.light = light;
+	}
+	//弱光状态
+	var WeakLightState = function(light){
+		this.light = light;
+	}
+	// 强光状态
+	var StrongLightState = function(light){
+		this.light = light;
+	}
+	// 超强光状态
+	var SuperStrongLightState = function(light){
+		this.light = light;
+	}
+	OffLightState.prototype = new State();//继承抽象父类
+	OffLightState.prototype.buttonWasPressed = function(){
+		console.log("开灯-弱光");
+		this.light.setState(this.light.weakLightState);
+	}
+	WeakLightState.prototype = new State();
+	WeakLightState.prototype.buttonWasPressed = function(){
+		console.log("强光");
+		this.light.setState(this.light.strongLigthState);
+	}
+	StrongLightState.prototype = new State();
+	StrongLightState.prototype.buttonWasPressed = function(){
+		console.log("超强光");
+		this.light.setState(this.light.superStrongLightState);
+	}
+	SuperStrongLightState.prototype = new State();
+	SuperStrongLightState.prototype.buttonWasPressed = function(){
+		console.log("关灯");
+		this.light.setState(this.light.offLightState);
+	}
+
+	Light.prototype.init = function(){
+		var button = document.createElement('button');
+		var self = this;
+
+		this.button = document.body.appendChild(button);
+		this.button.innerHTML = '开关';
+		this.curState = this.offLightState; //设置初始状态
+
+		this.button.onclick = function(){
+			self.curState.buttonWasPressed();
+
+		}
+	}
+	var light = new Light();
+	light.init();
+	/*****************js方式的初始状态********************/
+	var jLight = function(){
+		this.curState = FSM.off;
+		this.button = null;
+	}
+	jLight.prototype.init = function(){
+		var button = document.createElement('button');
+		_self = this;
+
+		button.innerHTML = '已关灯';
+		this.button = document.body.appendChild(button);
+		this.button.onclick = function(){
+			_self.curState.buttonWasPressed.call(_self);
+		}
+	}
+	var FSM = {
+		off:{
+			buttonWasPressed:function(){
+				console.log("关灯");
+				this.button.innerHTML = '下一次按我是开灯';
+				this.curState = FSM.on;
+			}
+		},
+		on:{
+			buttonWasPressed:function(){
+				console.log("开灯");
+				this.button.innerHTML = '下一次按我是关灯';
+				this.curState = FSM.off;
+			}
+		}
+	};
+	var jlight = new jLight();
+	jlight.init();
+/**************************适配器模式***************************/
+	
+
+///策略模式
+function maxNumLengthD(value,length,errorMsg){
+	var reg =new RegExp("^[1-9]\\d{0," + (length-1) + "}$");
+        // var reg = /^\d{0,length-1}$/
+        // /^[1-9]\d{0,6}$/
+        if(!reg.test(value)){
+            return errorMsg;
+        }else{
+            return true;
+        }
+    };
+
+function maxLengthLimit(value,length,cb){
+  if(value.length > parseInt(length)){
+    $.isFunction(cb) && cb()
+  }
+}
+    (function(){
+			console.log(maxNumLengthD(12,7,'jjj'));
+			maxLengthLimit('123456',3,function(){console.log("jjjk")});
+    })();
+/********************用对象多态性消除条件分支************************/
+console.log('------对象多态性替换条件分支-------');
+console.log('------优化前代码-START------');
+var Duck = function(){};
+var Chicken = function(){};
+/*****函数说明：动物鸣叫*****/
+var makeSound = function(animal){
+	if (animal instanceof Duck) {
+		console.log('嘎嘎嘎');
+	}else if(animal instanceof Chicken){
+		console.log('咯咯咯');
+	}
+	//新增“狗”的判断条件
+	else if (animal instanceof Dog){
+		console.log('汪汪汪');
+	};
+}
+makeSound(new Duck());
+makeSound(new Chicken);
+
+//当新增一个动物时，
+var Dog = function(){};
+makeSound(new Dog());
+console.log('------优化前代码-END------');
+//---------------------------------------------------
+var makeSound = function(animal){
+	animal.sound();
+}
+var Duck = function(){};
+Duck.prototype.sound = function(){
+	console.log('嘎嘎嘎');
+}
+var Chicken = function(){};
+Chicken.prototype.sound = function(){
+	console.log('咯咯咯');
+}
+makeSound(new Duck());
+makeSound(new Chicken());
+//新增动物，则不需要改动原来已有的代码逻辑
+var Dog = function(){}
+Dog.prototype.sound = function(){
+	console.log('汪汪汪');
+}
+makeSound(new Dog());
+
+//单例模式第一次实现方式：
+//实现方式存在功能不单一的缺点，即创建的对象与管理单例的逻辑是放在一起的，
+var createLoginLayer = (function(){
+	var div;
+	return function(){
+		if(!div){
+			div = document.createElement('div');
+			div.innerHTML = '我是登录浮窗';
+			div.style.display = 'none';
+			div.style.background = 'none';
+			div.style.width = '120px';
+			div.style.height = '120px';
+			div.style.background = '#eee';
+			document.body.appendChild(div);
+		}return div;
+	}
+})();
+ document.getElementById('loginBtn').onclick = function(){
+ 	var loginLayer = createLoginLayer();
+ 	loginLayer.style.display = 'block';
+ }
+
+ //可将创建对象和管理是否为单例的逻辑分离处理
+ //管理单例逻辑,入参是创建对象函数
+ var getSingle = function(fn){
+ 	var result;
+ 	return function(){
+ 		return result || (result = fn.apply(this,arguments));
+ 	}
+ }
+ //创建登录浮窗DOM
+ var createLoginLayer1 = function(){
+ 	var div = document.createElement('div');
+ 	div.innerHTML = '我是职责分离后的浮窗';
+ 	div.style.display = 'none';
+ 	document.body.appendChild(div);
+ 	return div;
+ }
+
+ var createSingleLoginLayer = getSingle(createLoginLayer1);
+ document.getElementById('loginBtn1').onclick = function(){
+ 	var loginLayer = createSingleLoginLayer();
+ 	loginLayer.style.display = 'block';
+ }
+
+ //可做功能扩展，动态生成一个唯一的iframe，用于动态加载第三方页面。
+ var createSingleIframe = getSingle(function(){
+ 	var iframe = document.createElement('iframe');
+ 	document.body.appendChild(iframe);
+ 	return iframe;
+ })
+ document.getElementById('iframeSingle').onclick = function(){
+ 	var iframe = createSingleIframe();
+ 	iframe.src = 'http://www.baidu.com'
+ }
+
+ //策略模式--------员工奖金代码
+ //一般实现思路
+ var calculateBonus = function(performancelevel,salary){
+ 	if(performancelevel == 'S'){
+ 		return salary*4;
+ 	}
+ 	if(performancelevel == 'A'){
+ 		return salary*3;
+ 	}
+ 	if(performancelevel == 'B'){
+ 		return salary*2;
+ 	}
+ };
+ console.log(calculateBonus('B',10000));
+ console.log(calculateBonus('S',2000));
+
+ //策略模式的基本思路是将不变的变化部分分离开来处理，
+ //主要包括了策略类（strategy）、环境类（context）
+ //context接受客户的请求，strategy则封装各类计算规则
+var strategies = {
+	"S":function(salary){
+		return salary*4;
+	},
+	"A":function(salary) {
+		return salary*3;
+	},
+	"B":function(salary){
+		return salary*2;
+	}
+}
+var calculateBonus1 = function(level,salary){
+	return strategies[level](salary);
+}
+console.log(calculateBonus1("S",2000));
+//----------------------------------代理模式-----------------------
+//小明追女神的故事,A为女神，B为代理对象
+
+//未使用代理，小明直接送花 
+var Flower = function(){};
+var xiaoming = {
+	sendFlower:function(target){
+		var flower = new Flower();
+		target.receiveFlower(flower);
+	}
+}
+var A = {
+	receiveFlower:function(flower){
+		console.log("收到花"+flower);
+	},
+	listenGoodMood:function(fn){
+		//假设10s心情变好
+		setTimeout(function(){fn();},10000)
+	}
+}
+//失败了，在A心情不好的时候送花，
+xiaoming.sendFlower(A);
+
+//引入代理,引入B后增加告白成功率，B很了解A的状态，可以监听A的状态，当A心情好时送花，成功告白的概率会增加
+var B = {
+	receiveFlower:function(flower){
+		A.listenGoodMood(function(){
+			A.receiveFlower(flower);
+		});
+	}
+}
+//B很了解A，告白成功概率增加
+xiaoming.sendFlower(B);
+
+	</script>
+</body>
+</html>
